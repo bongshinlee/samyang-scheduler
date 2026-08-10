@@ -6,6 +6,15 @@ document.addEventListener('DOMContentLoaded', () => {
   let tasks = [];
   let currentTheme = 'light';
 
+  // Shared-store sync state
+  const API_URL = '/api/schedule';
+  const POLL_INTERVAL_MS = 15000;
+  let serverVersion = 0;      // version of the server state this client is based on
+  let isDirty = false;        // has unsaved local edits
+  let apiAvailable = false;   // shared store reachable
+  let conflictWarned = false; // avoid repeating the "someone else edited" toast
+  let syncTimer = null;
+
   // DOM Elements
   const themeToggle = document.getElementById('themeToggle');
   const themeIcon = document.getElementById('themeIcon');
@@ -42,15 +51,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const modalClose = document.getElementById('modalClose');
   const btnReset = document.getElementById('btnReset');
   const btnSave = document.getElementById('btnSave');
-  const btnExport = document.getElementById('btnExport');
-  const btnImport = document.getElementById('btnImport');
-  const importFile = document.getElementById('importFile');
+  const btnPrint = document.getElementById('btnPrint');
+  const syncStatus = document.getElementById('syncStatus');
+
 
   // --- Initial Setup ---
   initTheme();
   loadData();
   renderApp();
   fetchWeather();
+  initSync();
 
   // --- Theme Management ---
   function initTheme() {
@@ -259,7 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
           });
         });
         if (migrated) {
-          saveData();
+          saveData(false);
         }
       } catch (e) {
         tasks = [...window.INITIAL_DATA];
@@ -269,20 +279,369 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function saveData() {
+  // Persists to this browser only. Every edit calls this, so it doubles as the
+  // single place that flags "there are changes not yet pushed to the shared store".
+  function saveData(markDirty = true) {
     localStorage.setItem('smart_scheduler_tasks', JSON.stringify(tasks));
+    if (markDirty && !isDirty) {
+      isDirty = true;
+      updateSaveIndicator();
+    }
   }
 
-  function resetData() {
+  // --- Shared Store Sync ---
+  function updateSaveIndicator() {
+    if (isDirty) {
+      btnSave.classList.add('has-changes');
+      btnSave.title = '저장하지 않은 변경사항이 있습니다. 눌러서 모두에게 공유하세요.';
+    } else {
+      btnSave.classList.remove('has-changes');
+      btnSave.title = '현재 일정을 모두에게 공유 저장';
+    }
+  }
+
+  function setSyncStatus(state, text) {
+    if (!syncStatus) return;
+    syncStatus.className = `sync-status ${state}`;
+    syncStatus.textContent = text;
+  }
+
+  async function fetchServerState() {
+    const response = await fetch(API_URL, { cache: 'no-store' });
+    if (!response.ok) throw new Error(`GET ${API_URL} -> ${response.status}`);
+    return response.json();
+  }
+
+  async function initSync() {
+    try {
+      const state = await fetchServerState();
+      apiAvailable = true;
+
+      if (Array.isArray(state.tasks)) {
+        adoptServerState(state);
+      } else {
+        // Nothing stored yet. Seed from data.js rather than this browser's
+        // localStorage, so the shared board always starts from the committed
+        // file no matter whose browser happens to open the site first.
+        tasks = JSON.parse(JSON.stringify(window.INITIAL_DATA));
+        saveData(false);
+        renderApp();
+        await pushToServer(true, true);
+      }
+      setSyncStatus('online', '공유됨');
+    } catch (err) {
+      apiAvailable = false;
+      setSyncStatus('offline', '오프라인');
+      return;
+    }
+
+    startPolling();
+  }
+
+  // Replace local state with the server's, without flagging it as a local edit.
+  function adoptServerState(state) {
+    tasks = state.tasks;
+    serverVersion = state.version || 0;
+    isDirty = false;
+    conflictWarned = false;
+    saveData(false);
+    updateSaveIndicator();
+    renderApp();
+  }
+
+  // seeding: this is the automatic first-run upload, not a user-initiated save,
+  // so losing the race to another browser is normal — just take their copy.
+  async function pushToServer(silent = false, seeding = false) {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tasks, baseVersion: serverVersion }),
+    });
+
+    if (response.status === 409) {
+      const serverState = await response.json();
+      if (seeding) {
+        adoptServerState(serverState);
+      } else {
+        resolveConflict(serverState);
+      }
+      return false;
+    }
+    if (!response.ok) throw new Error(`POST ${API_URL} -> ${response.status}`);
+
+    const state = await response.json();
+    serverVersion = state.version || 0;
+    isDirty = false;
+    conflictWarned = false;
+    saveData(false);
+    updateSaveIndicator();
+    setSyncStatus('online', '공유됨');
+    if (!silent) {
+      showToast('저장 완료! 이제 다른 사람도 이 내용을 볼 수 있습니다.', 'success');
+    }
+    return true;
+  }
+
+  // Someone else saved between our last sync and this save. Let the user pick.
+  function resolveConflict(serverState) {
+    const when = serverState.updatedAt
+      ? new Date(serverState.updatedAt).toLocaleString('ko-KR')
+      : '알 수 없음';
+
+    const overwrite = confirm(
+      `다른 사람이 먼저 저장했습니다. (${when})\n\n` +
+      `[확인] 내가 수정한 내용으로 덮어쓰기\n` +
+      `[취소] 내 수정 내용을 버리고 최신 내용 불러오기`
+    );
+
+    if (overwrite) {
+      serverVersion = serverState.version || 0;
+      pushToServer().catch(() => {
+        showToast('저장에 실패했습니다. 네트워크를 확인해주세요.', 'danger');
+      });
+    } else {
+      adoptServerState(serverState);
+      showToast('최신 내용을 불러왔습니다.', 'info');
+    }
+  }
+
+  function startPolling() {
+    if (syncTimer) clearInterval(syncTimer);
+    syncTimer = setInterval(pollServer, POLL_INTERVAL_MS);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) pollServer();
+    });
+  }
+
+  async function pollServer() {
+    if (!apiAvailable || document.hidden) return;
+    // Don't yank the table out from under an open edit form.
+    if (taskModal.classList.contains('active')) return;
+
+    try {
+      const state = await fetchServerState();
+      if (!Array.isArray(state.tasks)) return;
+      if ((state.version || 0) === serverVersion) return;
+
+      if (isDirty) {
+        if (!conflictWarned) {
+          conflictWarned = true;
+          showToast('다른 사람이 일정을 수정했습니다. 저장할 때 확인이 필요합니다.', 'danger');
+        }
+        return;
+      }
+
+      adoptServerState(state);
+      showToast('다른 사람의 변경사항이 반영되었습니다.', 'info');
+    } catch (err) {
+      // Transient network hiccup; the next poll will retry.
+    }
+  }
+
+  // --- IndexedDB File Handle Cache for Automatic Silent Saves ---
+  const DB_NAME = 'SamyangSchedulerDB';
+  const STORE_NAME = 'FileHandles';
+  const KEY_NAME = 'dataJsHandle';
+
+  function openDB() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(DB_NAME, 1);
+      request.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME);
+        }
+      };
+      request.onsuccess = (e) => resolve(e.target.result);
+      request.onerror = (e) => reject(e.target.error);
+    });
+  }
+
+  async function getSavedFileHandle() {
+    try {
+      const db = await openDB();
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction(STORE_NAME, 'readonly');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.get(KEY_NAME);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    } catch (err) {
+      return null;
+    }
+  }
+
+  async function saveFileHandle(handle) {
+    try {
+      const db = await openDB();
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction(STORE_NAME, 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.put(handle, KEY_NAME);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+    } catch (err) {
+      console.error('Failed to cache file handle:', err);
+    }
+  }
+
+  // Save button: publish to the shared store so everyone sees the change.
+  async function handleSaveClick() {
+    saveData(false);
+
+    // One retry in case the site was loaded while the network was flaky.
+    if (!apiAvailable) {
+      try {
+        const state = await fetchServerState();
+        apiAvailable = true;
+        if (Array.isArray(state.tasks) && (state.version || 0) !== serverVersion) {
+          serverVersion = state.version || 0;
+        }
+        startPolling();
+      } catch (err) {
+        apiAvailable = false;
+      }
+    }
+
+    if (apiAvailable) {
+      btnSave.disabled = true;
+      try {
+        await pushToServer();
+      } catch (err) {
+        showToast('저장에 실패했습니다. 네트워크를 확인한 뒤 다시 시도해주세요.', 'danger');
+        setSyncStatus('offline', '오프라인');
+      } finally {
+        btnSave.disabled = false;
+      }
+      return;
+    }
+
+    // No shared store reachable (opened as a local file, or offline):
+    // fall back to writing data.js on this machine.
+    showToast('공유 서버에 연결할 수 없어 파일로 저장합니다.', 'info');
+    await legacySaveToFile();
+  }
+
+  async function legacySaveToFile() {
+    // Check if running on local python server (http://localhost:8000)
+    if (window.location.protocol.startsWith('http')) {
+      try {
+        const response = await fetch('/save', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(tasks),
+        });
+        
+        if (response.ok) {
+          showToast('data.js 파일이 자동으로 성공적으로 업데이트되었습니다!', 'success');
+          return;
+        }
+      } catch (err) {
+        console.error('Failed to save to local server', err);
+      }
+    }
+    
+    // Fallback: Use File System Access API if not running on http server
+    const fileContent = `// Smart Scheduler Initial Seed Data
+const INITIAL_DATA = ${JSON.stringify(tasks, null, 2)};
+
+if (typeof window !== 'undefined') {
+  window.INITIAL_DATA = INITIAL_DATA;
+}
+`;
+
+    if (!('showSaveFilePicker' in window)) {
+      fallbackDownload(fileContent);
+      return;
+    }
+
+    try {
+      let handle = await getSavedFileHandle();
+      
+      if (handle) {
+        const options = { mode: 'readwrite' };
+        let permission = await handle.queryPermission(options);
+        
+        if (permission !== 'granted') {
+          permission = await handle.requestPermission(options);
+        }
+        
+        if (permission === 'granted') {
+          const writable = await handle.createWritable();
+          await writable.write(fileContent);
+          await writable.close();
+          showToast('data.js 파일이 성공적으로 자동 업데이트되었습니다!', 'success');
+          return;
+        }
+      }
+      
+      // If no cached handle or permission denied, ask user to select file once
+      const pickerOptions = {
+        suggestedName: 'data.js',
+        types: [{
+          description: 'JavaScript File',
+          accept: {
+            'text/javascript': ['.js'],
+          },
+        }],
+      };
+      handle = await window.showSaveFilePicker(pickerOptions);
+      await saveFileHandle(handle); // Cache handle for future use
+      
+      const writable = await handle.createWritable();
+      await writable.write(fileContent);
+      await writable.close();
+      showToast('data.js 파일 연동 및 업데이트 완료!', 'success');
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        fallbackDownload(fileContent);
+      }
+    }
+  }
+
+  function fallbackDownload(content) {
+    const blob = new Blob([content], { type: 'text/javascript;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'data.js');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('data.js 파일이 다운로드되었습니다. 기존 파일 위에 덮어써주세요.', 'info');
+  }
+
+  async function resetData() {
     const pw = prompt('데이터를 초기화하려면 비밀번호를 입력해주세요:');
-    if (pw === '2800') {
-      tasks = JSON.parse(JSON.stringify(window.INITIAL_DATA));
-      saveData();
-      populateManagerFilter();
-      renderApp();
-      showToast('성공적으로 데이터를 초기화했습니다.', 'success');
-    } else if (pw !== null) {
+    if (pw === null) return;
+
+    if (pw !== '2800') {
       showToast('비밀번호가 올바르지 않습니다.', 'danger');
+      return;
+    }
+
+    // The board is shared, so a reset wipes it out for everyone.
+    if (apiAvailable && !confirm('초기화하면 모든 사용자의 화면에서 현재 일정이 사라집니다.\n계속할까요?')) {
+      return;
+    }
+
+    tasks = JSON.parse(JSON.stringify(window.INITIAL_DATA));
+    saveData();
+    renderApp();
+
+    if (apiAvailable) {
+      try {
+        await pushToServer(true, false);
+        showToast('모두에게 초기 데이터로 초기화했습니다.', 'success');
+      } catch (err) {
+        showToast('초기화했지만 공유 저장에 실패했습니다. 저장 버튼을 눌러주세요.', 'danger');
+      }
+    } else {
+      showToast('성공적으로 데이터를 초기화했습니다.', 'success');
     }
   }
 
@@ -454,12 +813,12 @@ document.addEventListener('DOMContentLoaded', () => {
       // 1. NO & Edit Trigger
       let rowHtml = `
         <td class="no-col" title="클릭 시 전체 행 완료 토글" data-id="${task.id}">${task.id}</td>
-        <td class="part-col"><span class="part-badge">${escapeHtml(task.part)}</span></td>
-        <td class="cat-col"><span class="cat-badge">${escapeHtml(task.category)}</span></td>
+        <td class="part-col" data-edit-task="${task.id}" title="더블 클릭하여 편집"><span class="part-badge">${escapeHtml(task.part)}</span></td>
+        <td class="cat-col" data-edit-task="${task.id}" title="더블 클릭하여 편집"><span class="cat-badge">${escapeHtml(task.category)}</span></td>
         <td class="${taskNameClass}" data-edit-task="${task.id}" title="더블 클릭하여 편집">${escapeHtml(task.taskName)}</td>
-        <td class="manager-col">${escapeHtml(task.manager)}</td>
+        <td class="manager-col" data-edit-task="${task.id}" title="더블 클릭하여 편집">${escapeHtml(task.manager)}</td>
         <td class="contractor-col" data-edit-task="${task.id}" title="더블 클릭하여 편집">${escapeHtml(task.contractor)}</td>
-        <td class="period-col">${escapeHtml(task.period)}</td>
+        <td class="period-col" data-edit-task="${task.id}" title="더블 클릭하여 편집">${escapeHtml(task.period)}</td>
       `;
 
       // 2. Add the 7 Schedule columns
@@ -480,7 +839,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const formattedText = formatScheduleText(sched.text);
         
         rowHtml += `
-          <td class="${cellClass}" data-task-id="${task.id}" data-date="${date}">
+          <td class="${cellClass}" data-task-id="${task.id}" data-date="${date}" data-edit-task="${task.id}" title="더블 클릭하여 편집">
             <div class="date-cell-inner">${formattedText}</div>
           </td>
         `;
@@ -563,6 +922,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- Event Handling for Table Interactivity ---
   function attachTableEvents() {
+    let clickTimeout = null;
+    let pendingTaskId = null;
+    let pendingDate = null;
+
     // A. Toggle entire row on NO. column click
     document.querySelectorAll('.no-col').forEach(cell => {
       cell.addEventListener('click', (e) => {
@@ -589,41 +952,54 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
-    // B. Toggle single cell schedule completion on click
+    // B. Toggle single cell schedule completion on click (with delay to avoid double click conflict)
     document.querySelectorAll('.date-cell:not(.cell-empty)').forEach(cell => {
       cell.addEventListener('click', (e) => {
-        // Find nearest cell element (in case child was clicked)
-        const cellEl = e.target.closest('.date-cell');
-        const taskId = parseInt(cellEl.dataset.taskId);
-        const date = cellEl.dataset.date;
-
-        const task = tasks.find(t => t.id === taskId);
-        if (task && task.schedules[date]) {
-          const sched = task.schedules[date];
-          sched.completed = !sched.completed;
-
-          // If all individual scheduled items are completed, mark row completed.
-          // If any is uncompleted, make sure row is active.
-          const scheduleList = Object.values(task.schedules).filter(s => s.text && s.text.trim());
-          const allDone = scheduleList.every(s => s.completed);
-          
-          if (allDone) {
-            task.completed = true;
-          } else {
-            task.completed = false;
-          }
-
-          saveData();
-          renderStats();
-          renderTable();
+        // If clickTimeout is active, this is the second click of a double-click
+        if (clickTimeout) {
+          clearTimeout(clickTimeout);
+          clickTimeout = null;
+          return;
         }
+
+        const cellEl = e.target.closest('.date-cell');
+        pendingTaskId = parseInt(cellEl.dataset.taskId);
+        pendingDate = cellEl.dataset.date;
+
+        clickTimeout = setTimeout(() => {
+          clickTimeout = null;
+          const task = tasks.find(t => t.id === pendingTaskId);
+          if (task && task.schedules[pendingDate]) {
+            const sched = task.schedules[pendingDate];
+            sched.completed = !sched.completed;
+
+            // If all individual scheduled items are completed, mark row completed.
+            const scheduleList = Object.values(task.schedules).filter(s => s.text && s.text.trim());
+            const allDone = scheduleList.every(s => s.completed);
+            
+            if (allDone) {
+              task.completed = true;
+            } else {
+              task.completed = false;
+            }
+
+            saveData();
+            renderStats();
+            renderTable();
+          }
+        }, 220); // 220ms is comfortable to detect double click without sluggishness
       });
     });
 
     // C. Double-click to open edit modal
     document.querySelectorAll('[data-edit-task]').forEach(cell => {
       cell.addEventListener('dblclick', (e) => {
-        const taskId = parseInt(e.target.dataset.editTask);
+        if (clickTimeout) {
+          clearTimeout(clickTimeout);
+          clickTimeout = null;
+        }
+        const cellEl = e.target.closest('[data-edit-task]');
+        const taskId = parseInt(cellEl.dataset.editTask);
         openEditTaskModal(taskId);
       });
     });
@@ -783,47 +1159,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- Reset/Backup/Restore Events ---
   btnReset.addEventListener('click', resetData);
-  btnSave.addEventListener('click', () => {
-    saveData();
-    renderStats();
-    showToast('현재 변경 사항이 성공적으로 저장되었습니다.', 'success');
+  btnSave.addEventListener('click', handleSaveClick);
+  btnPrint.addEventListener('click', () => {
+    window.print();
   });
 
-  btnExport.addEventListener('click', () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(tasks, null, 2));
-    const dlAnchorElem = document.createElement('a');
-    dlAnchorElem.setAttribute("href", dataStr);
-    dlAnchorElem.setAttribute("download", `schedule_backup_${new Date().toISOString().slice(0,10)}.json`);
-    dlAnchorElem.click();
-    showToast('일정 백업 파일이 다운로드되었습니다.', 'success');
+  // Unsaved edits live only in this browser until the save button is pressed.
+  window.addEventListener('beforeunload', (e) => {
+    if (isDirty && apiAvailable) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
   });
 
-  btnImport.addEventListener('click', () => {
-    importFile.click();
-  });
-
-  importFile.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = function(evt) {
-      try {
-        const importedData = JSON.parse(evt.target.result);
-        if (Array.isArray(importedData)) {
-          tasks = importedData;
-          saveData();
-          renderApp();
-          showToast('데이터가 성공적으로 복원되었습니다.', 'success');
-        } else {
-          showToast('유효하지 않은 백업 형식입니다.', 'danger');
-        }
-      } catch (err) {
-        showToast('파일을 읽는 중 오류가 발생했습니다.', 'danger');
-      }
-    };
-    reader.readAsText(file);
-  });
 
   // --- Filters Events ---
   [searchKeyword, filterPart, filterCategory, filterManager, filterStatus].forEach(filterEl => {

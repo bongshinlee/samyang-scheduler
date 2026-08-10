@@ -1,0 +1,11 @@
+[build]
+  command = "npm install"
+  publish = "."
+  functions = "netlify/functions"
+
+# Always revalidate the app shell. Without this, a returning user can keep
+# running an old cached app.js and silently miss the shared-save logic.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cache-Control = "no-cache"

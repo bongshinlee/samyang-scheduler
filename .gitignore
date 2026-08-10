@@ -1,6 +1,7 @@
 .gemini/
 .git/
 node_modules/
+schedule-state.json
 .DS_Store
 *.log
 Thumbs.db

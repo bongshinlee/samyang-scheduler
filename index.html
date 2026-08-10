@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>삼양화성 공무팀 임시보수 현황판</title>
-  <link rel="stylesheet" href="style.css">
+  <!-- Bump ?v= whenever app.js/style.css change so returning users can't run a stale cached copy -->
+  <link rel="stylesheet" href="style.css?v=3">
 </head>
 <body>
   <!-- Decorative Glow Backgrounds -->
@@ -28,13 +29,14 @@
         <div id="weatherWidget" class="weather-widget-container"></div>
       </div>
       <div class="header-controls">
+        <span id="syncStatus" class="sync-status connecting">연결 중...</span>
         <button id="themeToggle" class="btn-icon" title="테마 변경 (다크/라이트)">
           <!-- Moon Icon (for dark theme, click to go light) -->
           <svg id="themeIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
           </svg>
         </button>
-        <button id="btnSave" class="btn btn-primary" title="현재 일정 변경사항 저장">
+        <button id="btnSave" class="btn btn-primary" title="현재 일정을 모두에게 공유 저장">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
             <polyline points="17 21 17 13 7 13 7 21"></polyline>
@@ -163,23 +165,14 @@
           </svg>
           새 작업 추가
         </button>
-        <button id="btnExport" class="btn btn-outline" title="데이터 내보내기 (JSON)">
+        <button id="btnPrint" class="btn btn-outline" title="A4 가로 크기로 화면 인쇄/출력">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="17 8 12 3 7 8"></polyline>
-            <line x1="12" y1="3" x2="12" y2="15"></line>
+            <polyline points="6 9 6 2 18 2 18 9"></polyline>
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+            <rect x="6" y="14" width="12" height="8"></rect>
           </svg>
-          백업
+          화면출력
         </button>
-        <button id="btnImport" class="btn btn-outline" title="데이터 불러오기 (JSON)">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="7 10 12 15 17 10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
-          </svg>
-          복원
-        </button>
-        <input type="file" id="importFile" style="display: none;" accept=".json">
       </div>
     </section>
 
@@ -324,7 +317,7 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <!-- Scripts -->
-  <script src="data.js"></script>
-  <script src="app.js"></script>
+  <script src="data.js?v=3"></script>
+  <script src="app.js?v=3"></script>
 </body>
 </html>
