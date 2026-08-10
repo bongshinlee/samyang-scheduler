@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>삼양화성 공무팀 임시보수 현황판</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Decorative Glow Backgrounds -->
+  <div class="glass-glow-1"></div>
+  <div class="glass-glow-2"></div>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header>
+      <div class="logo-section">
+        <h1>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          삼양화성 공무팀 임시보수 현황판
+          <span class="logo-badge">8/10~17</span>
+        </h1>
+        <div id="weatherWidget" class="weather-widget-container"></div>
+      </div>
+      <div class="header-controls">
+        <button id="themeToggle" class="btn-icon" title="테마 변경 (다크/라이트)">
+          <!-- Moon Icon (for dark theme, click to go light) -->
+          <svg id="themeIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </button>
+        <button id="btnSave" class="btn btn-primary" title="현재 일정 변경사항 저장">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+            <polyline points="7 3 7 8 15 8"></polyline>
+          </svg>
+          저장
+        </button>
+        <button id="btnReset" class="btn btn-outline" title="초기 샘플 데이터로 복원">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+          </svg>
+          데이터 초기화
+        </button>
+      </div>
+    </header>
+
+    <!-- Dashboard Statistics -->
+    <section class="dashboard-stats">
+      <!-- Progress Ring Card -->
+      <div class="stat-card">
+        <div class="stat-icon primary">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <div class="stat-title">전체 일정 완료율</div>
+          <div class="stat-value" id="completionRateText">0%</div>
+          <div class="progress-container">
+            <div class="progress-bar" id="completionProgressBar"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Total Tasks Card -->
+      <div class="stat-card">
+        <div class="stat-icon info">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 11l3 3L22 4"></path>
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <div class="stat-title">등록된 작업 수</div>
+          <div class="stat-value" id="totalTasksCount">0</div>
+        </div>
+      </div>
+
+      <!-- Completed Tasks Count -->
+      <div class="stat-card">
+        <div class="stat-icon success">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <div class="stat-title">완료된 세부 일정</div>
+          <div class="stat-value" id="completedTasksCount">0 / 0</div>
+        </div>
+      </div>
+
+      <!-- Remaining (Pending) Card -->
+      <div class="stat-card">
+        <div class="stat-icon warning">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <div class="stat-title">진행 예정인 일정</div>
+          <div class="stat-value" id="pendingTasksCount">0</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Toolbar Filters & Actions -->
+    <section class="toolbar">
+      <div class="filter-group">
+        <!-- Search Input -->
+        <div class="search-input-wrapper">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="searchKeyword" class="input-field" placeholder="작업명, 업체, 담당자 검색...">
+        </div>
+
+        <!-- Part Filter -->
+        <select id="filterPart" class="select-dropdown">
+          <option value="all">전체 파트</option>
+          <option value="보전">보전</option>
+          <option value="제정">제정</option>
+        </select>
+
+        <!-- Category Filter -->
+        <select id="filterCategory" class="select-dropdown">
+          <option value="all">전체 구분</option>
+          <option value="기계">기계</option>
+          <option value="계장">계장</option>
+          <option value="전기">전기</option>
+        </select>
+
+        <!-- Manager Filter -->
+        <select id="filterManager" class="select-dropdown">
+          <option value="all">전체 담당자</option>
+          <!-- Will be dynamically populated -->
+        </select>
+
+        <!-- Completion Status Filter -->
+        <select id="filterStatus" class="select-dropdown">
+          <option value="all">전체 상태</option>
+          <option value="active">진행 중 일정만</option>
+          <option value="completed">완료된 일정만</option>
+        </select>
+      </div>
+
+      <div class="action-group">
+        <button id="btnAddTask" class="btn btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          새 작업 추가
+        </button>
+        <button id="btnExport" class="btn btn-outline" title="데이터 내보내기 (JSON)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          백업
+        </button>
+        <button id="btnImport" class="btn btn-outline" title="데이터 불러오기 (JSON)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          복원
+        </button>
+        <input type="file" id="importFile" style="display: none;" accept=".json">
+      </div>
+    </section>
+
+    <!-- Schedule Grid Table -->
+    <main class="table-card">
+      <div class="table-responsive">
+        <table class="schedule-table" id="scheduleTable">
+          <thead>
+            <tr>
+              <th title="클릭 시 행 전체 완료 상태 토글">NO</th>
+              <th>파트</th>
+              <th>구분</th>
+              <th>공사(작업)명</th>
+              <th>공사담당</th>
+              <th>선정업체</th>
+              <th>공사기간</th>
+              <th class="date-col">8/10(월)</th>
+              <th class="date-col">8/11(화)</th>
+              <th class="date-col">8/12(수)</th>
+              <th class="date-col">8/13(목)</th>
+              <th class="date-col">8/14(금)</th>
+              <th class="date-col">8/15(토)</th>
+              <th class="date-col">8/16(일)</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <!-- Will be dynamically populated -->
+          </tbody>
+        </table>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+      <div>삼양화성 공무팀 2026년 임시보수기간 일정관리시스템입니다</div>
+      <div>팁: 각 날짜별 <b>상세 일정 칸을 클릭</b>하면 <b>완료 처리</b>됩니다. <b>NO 번호를 클릭</b>하면 전체 행이 토글됩니다.</div>
+    </footer>
+  </div>
+
+  <!-- Add/Edit Task Modal Dialog -->
+  <div class="modal-overlay" id="taskModal">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modalTitle">새 작업 추가</h3>
+        <button id="modalClose" class="btn-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <form id="taskForm">
+        <input type="hidden" id="editTaskId">
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label" for="taskPart">파트</label>
+              <select id="taskPart" class="select-dropdown" required>
+                <option value="보전">보전</option>
+                <option value="제정">제정</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="taskCategory">구분</label>
+              <select id="taskCategory" class="select-dropdown" required>
+                <option value="기계">기계</option>
+                <option value="계장">계장</option>
+                <option value="전기">전기</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="taskName">공사(작업)명</label>
+            <input type="text" id="taskName" class="input-field" required placeholder="작업명을 입력하세요">
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label" for="taskManager">공사담당</label>
+              <input type="text" id="taskManager" class="input-field" required placeholder="담당자 이름">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="taskContractor">선정업체</label>
+              <input type="text" id="taskContractor" class="input-field" required placeholder="업체명">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="taskPeriod">공사기간</label>
+            <input type="text" id="taskPeriod" class="input-field" required placeholder="예: 8/11(화)~8/14(금)">
+          </div>
+
+          <!-- Schedule breakdown -->
+          <div class="form-group">
+            <label class="form-label">날짜별 상세 작업 내용</label>
+            <span class="form-help">각 날짜별 상세 내용을 적어주세요. 빈칸은 일정이 없는 것으로 처리됩니다.</span>
+            <div class="schedule-subform">
+              <div class="schedule-day-row">
+                <span class="schedule-day-label">8/10(월)</span>
+                <input type="text" id="day_8_10" class="input-field" placeholder="일정 입력...">
+              </div>
+              <div class="schedule-day-row">
+                <span class="schedule-day-label">8/11(화)</span>
+                <input type="text" id="day_8_11" class="input-field" placeholder="일정 입력...">
+              </div>
+              <div class="schedule-day-row">
+                <span class="schedule-day-label">8/12(수)</span>
+                <input type="text" id="day_8_12" class="input-field" placeholder="일정 입력...">
+              </div>
+              <div class="schedule-day-row">
+                <span class="schedule-day-label">8/13(목)</span>
+                <input type="text" id="day_8_13" class="input-field" placeholder="일정 입력...">
+              </div>
+              <div class="schedule-day-row">
+                <span class="schedule-day-label">8/14(금)</span>
+                <input type="text" id="day_8_14" class="input-field" placeholder="일정 입력...">
+              </div>
+              <div class="schedule-day-row">
+                <span class="schedule-day-label">8/15(토)</span>
+                <input type="text" id="day_8_15" class="input-field" placeholder="일정 입력...">
+              </div>
+              <div class="schedule-day-row">
+                <span class="schedule-day-label">8/16(일)</span>
+                <input type="text" id="day_8_16" class="input-field" placeholder="일정 입력...">
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="btnDeleteTask" class="btn btn-danger-outline" style="display: none; margin-right: auto;">
+            삭제
+          </button>
+          <button type="button" id="btnCancelModal" class="btn btn-outline">취소</button>
+          <button type="submit" id="btnSubmitModal" class="btn btn-primary">추가하기</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Scripts -->
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

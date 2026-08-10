@@ -1,0 +1,11 @@
+{
+  "name": "smart-scheduler",
+  "version": "1.0.0",
+  "description": "Smart schedule and work completion status board web app",
+  "main": "index.html",
+  "scripts": {
+    "dev": "npx -y http-server -p 3000 -o"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
