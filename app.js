@@ -24,6 +24,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const pendingTasksCount = document.getElementById('pendingTasksCount');
   const completionRateText = document.getElementById('completionRateText');
   const completionProgressBar = document.getElementById('completionProgressBar');
+  const planRateText = document.getElementById('planRateText');
+  const planRateCaption = document.getElementById('planRateCaption');
+  const planProgressBar = document.getElementById('planProgressBar');
   
   // Filters
   const searchKeyword = document.getElementById('searchKeyword');
@@ -754,20 +757,31 @@ if (typeof window !== 'undefined') {
     let totalScheduledCount = 0;
     let completedScheduledCount = 0;
 
+    // "계획 대비": only the items whose planned date has already arrived.
+    const todayIndex = getTodayDateIndex();
+    let plannedToDateCount = 0;
+    let plannedToDateDone = 0;
+
     tasks.forEach(task => {
-      DATE_KEYS.forEach(date => {
+      DATE_KEYS.forEach((date, dateIndex) => {
         const sched = task.schedules[date];
         if (sched && sched.text && sched.text.trim()) {
+          const isDone = sched.completed || task.completed;
           totalScheduledCount++;
-          if (sched.completed || task.completed) {
+          if (isDone) {
             completedScheduledCount++;
+          }
+
+          if (todayIndex >= 0 && dateIndex <= todayIndex) {
+            plannedToDateCount++;
+            if (isDone) plannedToDateDone++;
           }
         }
       });
     });
 
-    const completionPercent = totalScheduledCount > 0 
-      ? Math.round((completedScheduledCount / totalScheduledCount) * 100) 
+    const completionPercent = totalScheduledCount > 0
+      ? Math.round((completedScheduledCount / totalScheduledCount) * 100)
       : 100;
 
     // Update UI elements
@@ -776,6 +790,59 @@ if (typeof window !== 'undefined') {
     pendingTasksCount.textContent = totalScheduledCount - completedScheduledCount;
     completionRateText.textContent = `${completionPercent}%`;
     completionProgressBar.style.width = `${completionPercent}%`;
+
+    renderPlanRate(plannedToDateDone, plannedToDateCount, todayIndex);
+  }
+
+  // Index of today within DATE_KEYS. Before the period starts -> -1,
+  // after it ends -> the last day, so every planned item counts.
+  function getTodayDateIndex() {
+    const today = new Date();
+    const todayStr = `${today.getMonth() + 1}/${today.getDate()}`;
+    const exact = DATE_KEYS.indexOf(todayStr);
+    if (exact !== -1) return exact;
+
+    const toDate = (key) => {
+      const [m, d] = key.split('/').map(Number);
+      return new Date(today.getFullYear(), m - 1, d);
+    };
+    const midnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+    if (midnight < toDate(DATE_KEYS[0])) return -1;
+    return DATE_KEYS.length - 1;
+  }
+
+  function renderPlanRate(done, planned, todayIndex) {
+    if (!planRateText) return;
+
+    if (todayIndex < 0) {
+      planRateText.textContent = '-';
+      planRateText.className = 'stat-value';
+      planRateCaption.textContent = '공사 시작 전';
+      planProgressBar.style.width = '0%';
+      planProgressBar.className = 'progress-bar';
+      return;
+    }
+
+    if (planned === 0) {
+      planRateText.textContent = '-';
+      planRateText.className = 'stat-value';
+      planRateCaption.textContent = '오늘까지 계획된 일정 없음';
+      planProgressBar.style.width = '0%';
+      planProgressBar.className = 'progress-bar';
+      return;
+    }
+
+    const percent = Math.round((done / planned) * 100);
+    const behind = percent < 100;
+
+    planRateText.textContent = `${percent}%`;
+    planRateText.className = `stat-value ${behind ? 'behind' : 'ontrack'}`;
+    planRateCaption.textContent = behind
+      ? `${DATE_KEYS[todayIndex]}까지 계획 ${planned}건 · 지연 ${planned - done}건`
+      : `${DATE_KEYS[todayIndex]}까지 계획 ${planned}건 · 지연 없음`;
+    planProgressBar.style.width = `${percent}%`;
+    planProgressBar.className = `progress-bar ${behind ? 'behind' : ''}`;
   }
 
   function renderTable() {
