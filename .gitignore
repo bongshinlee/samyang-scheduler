@@ -2,6 +2,7 @@
 .git/
 node_modules/
 schedule-state.json
+.claude/settings.local.json
 .DS_Store
 *.log
 Thumbs.db

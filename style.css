@@ -312,6 +312,20 @@ header {
   letter-spacing: -0.5px;
 }
 
+.stat-caption {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* Plan-vs-actual bar is colour-coded by how far behind schedule we are */
+.progress-bar.behind {
+  background: linear-gradient(90deg, var(--color-warning) 0%, var(--color-danger) 100%);
+}
+
+.stat-value.behind { color: var(--color-danger); }
+.stat-value.ontrack { color: var(--color-success); }
+
 .progress-container {
   width: 100%;
   height: 8px;
