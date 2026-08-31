@@ -1175,7 +1175,7 @@ footer {
 
   /* Title for printed document */
   .app-container::before {
-    content: "삼양화성 공무팀 임시보수 현황판 (9/7 ~ 9/16)";
+    content: "삼양화성 공무팀 임시보수 현황판 (9/9 ~ 9/16)";
     display: block;
     font-size: 20px;
     font-weight: 700;
