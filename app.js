@@ -2,9 +2,14 @@
 
 document.addEventListener('DOMContentLoaded', () => {
   // Constants & State
-  const DATE_KEYS = ['8/10', '8/11', '8/12', '8/13', '8/14', '8/15', '8/16'];
+  const DATE_KEYS = ['9/7', '9/8', '9/9', '9/10', '9/11', '9/12', '9/13'];
+
+  // Previous outage period. Anything saved before the 9/7 change is keyed by
+  // these, so it gets remapped position-for-position on load. The weekdays
+  // line up exactly (both run 월~일), so day labels stay correct.
+  const LEGACY_DATE_KEYS = ['8/10', '8/11', '8/12', '8/13', '8/14', '8/15', '8/16'];
+
   let tasks = [];
-  let currentTheme = 'light';
 
   // Shared-store sync state
   const API_URL = '/api/schedule';
@@ -16,8 +21,6 @@ document.addEventListener('DOMContentLoaded', () => {
   let syncTimer = null;
 
   // DOM Elements
-  const themeToggle = document.getElementById('themeToggle');
-  const themeIcon = document.getElementById('themeIcon');
   const tableBody = document.getElementById('tableBody');
   const totalTasksCount = document.getElementById('totalTasksCount');
   const completedTasksCount = document.getElementById('completedTasksCount');
@@ -59,59 +62,52 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   // --- Initial Setup ---
-  initTheme();
   loadData();
   renderApp();
   fetchWeather();
   initSync();
 
-  // --- Theme Management ---
-  function initTheme() {
-    const savedTheme = localStorage.getItem('scheduler_theme_v2') || 'light';
-    setTheme(savedTheme);
-  }
-
-  function setTheme(theme) {
-    document.documentElement.setAttribute('data-theme', theme);
-    currentTheme = theme;
-    localStorage.setItem('scheduler_theme_v2', theme);
-    
-    // Update Theme Toggle Icon
-    if (theme === 'light') {
-      themeIcon.innerHTML = `
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="5"></circle>
-          <line x1="12" y1="1" x2="12" y2="3"></line>
-          <line x1="12" y1="21" x2="12" y2="23"></line>
-          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-          <line x1="1" y1="12" x2="3" y2="12"></line>
-          <line x1="21" y1="12" x2="23" y2="12"></line>
-          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-        </svg>
-      `;
-    } else {
-      themeIcon.innerHTML = `
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-        </svg>
-      `;
-    }
-  }
-
-  themeToggle.addEventListener('click', () => {
-    setTheme(currentTheme === 'dark' ? 'light' : 'dark');
-  });
-
   // --- Data Loading & Persistence ---
+
+  // Moves schedules saved under the old outage dates onto the current ones.
+  // Returns true if anything was rewritten. Safe to call on already-current data.
+  function migrateDateKeys(taskList) {
+    if (!Array.isArray(taskList)) return false;
+    let changed = false;
+
+    taskList.forEach(task => {
+      if (!task || !task.schedules) return;
+      if (!LEGACY_DATE_KEYS.some(key => key in task.schedules)) return;
+
+      const remapped = {};
+      DATE_KEYS.forEach((key, i) => {
+        remapped[key] = task.schedules[LEGACY_DATE_KEYS[i]]
+          || task.schedules[key]
+          || { text: '', completed: false };
+      });
+      task.schedules = remapped;
+
+      // 공사기간 is display text like "8/11(화)~8/14(금)"; shift the dates and
+      // leave the weekday labels alone, since the weekdays match up.
+      if (typeof task.period === 'string') {
+        LEGACY_DATE_KEYS.forEach((oldKey, i) => {
+          task.period = task.period.split(oldKey).join(DATE_KEYS[i]);
+        });
+      }
+
+      changed = true;
+    });
+
+    return changed;
+  }
+
   function loadData() {
     const saved = localStorage.getItem('smart_scheduler_tasks');
     if (saved) {
       try {
         tasks = JSON.parse(saved);
         // Name migration for existing users
-        let migrated = false;
+        let migrated = migrateDateKeys(tasks);
         tasks.forEach(t => {
           if (t.manager === '임주환') {
             t.manager = '양우빈';
@@ -344,6 +340,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Replace local state with the server's, without flagging it as a local edit.
   function adoptServerState(state) {
     tasks = state.tasks;
+    // The shared store still holds the previous period's dates until someone
+    // saves; remap on read so the board never renders as empty columns.
+    migrateDateKeys(tasks);
     serverVersion = state.version || 0;
     isDirty = false;
     conflictWarned = false;
@@ -780,15 +779,17 @@ if (typeof window !== 'undefined') {
       });
     });
 
-    const completionPercent = totalScheduledCount > 0
+    // With no schedules entered yet, "100% 완료" would be misleading — show "-".
+    const hasSchedules = totalScheduledCount > 0;
+    const completionPercent = hasSchedules
       ? Math.round((completedScheduledCount / totalScheduledCount) * 100)
-      : 100;
+      : 0;
 
     // Update UI elements
     totalTasksCount.textContent = tasks.length;
     completedTasksCount.textContent = `${completedScheduledCount} / ${totalScheduledCount}`;
     pendingTasksCount.textContent = totalScheduledCount - completedScheduledCount;
-    completionRateText.textContent = `${completionPercent}%`;
+    completionRateText.textContent = hasSchedules ? `${completionPercent}%` : '-';
     completionProgressBar.style.width = `${completionPercent}%`;
 
     renderPlanRate(plannedToDateDone, plannedToDateCount, todayIndex);
@@ -866,7 +867,7 @@ if (typeof window !== 'undefined') {
     }
 
     const today = new Date();
-    const todayStr = `${today.getMonth() + 1}/${today.getDate()}`; // "8/10"
+    const todayStr = `${today.getMonth() + 1}/${today.getDate()}`; // "9/7"
 
     filteredTasks.forEach((task, index) => {
       const tr = document.createElement('tr');

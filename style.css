@@ -1011,10 +1011,6 @@ footer {
   box-shadow: var(--shadow-sm);
 }
 
-[data-theme="dark"] .weather-badge {
-  background: rgba(255, 255, 255, 0.04);
-}
-
 .weather-badge:hover {
   border-color: var(--color-primary);
   background: var(--color-primary-glow);
@@ -1125,13 +1121,6 @@ footer {
     background: #ffffff;
   }
 
-  [data-theme="dark"] .schedule-table td:nth-child(1),
-  [data-theme="dark"] .schedule-table td:nth-child(2),
-  [data-theme="dark"] .schedule-table td:nth-child(3),
-  [data-theme="dark"] .schedule-table td:nth-child(4) {
-    background: #151e2e;
-  }
-
   /* Keep row completion styling working with sticky backgrounds */
   tr.row-completed td:nth-child(1),
   tr.row-completed td:nth-child(2),
@@ -1186,7 +1175,7 @@ footer {
 
   /* Title for printed document */
   .app-container::before {
-    content: "삼양화성 공무팀 임시보수 현황판 (8/10 ~ 8/17)";
+    content: "삼양화성 공무팀 임시보수 현황판 (9/7 ~ 9/14)";
     display: block;
     font-size: 20px;
     font-weight: 700;
