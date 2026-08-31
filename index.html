@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>삼양화성 공무팀 임시보수 현황판</title>
   <!-- Bump ?v= whenever app.js/style.css change so returning users can't run a stale cached copy -->
-  <link rel="stylesheet" href="style.css?v=5">
+  <link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
   <!-- Decorative Glow Backgrounds -->
@@ -24,7 +24,7 @@
             <line x1="3" y1="10" x2="21" y2="10"></line>
           </svg>
           삼양화성 공무팀 임시보수 현황판
-          <span class="logo-badge">9/7~14</span>
+          <span class="logo-badge">9/7~16</span>
         </h1>
         <div id="weatherWidget" class="weather-widget-container"></div>
       </div>
@@ -200,13 +200,13 @@
               <th>공사담당</th>
               <th>선정업체</th>
               <th>공사기간</th>
-              <th class="date-col">9/7(월)</th>
-              <th class="date-col">9/8(화)</th>
               <th class="date-col">9/9(수)</th>
               <th class="date-col">9/10(목)</th>
               <th class="date-col">9/11(금)</th>
               <th class="date-col">9/12(토)</th>
               <th class="date-col">9/13(일)</th>
+              <th class="date-col">9/14(월)</th>
+              <th class="date-col">9/15(화)</th>
             </tr>
           </thead>
           <tbody id="tableBody">
@@ -274,7 +274,7 @@
 
           <div class="form-group">
             <label class="form-label" for="taskPeriod">공사기간</label>
-            <input type="text" id="taskPeriod" class="input-field" required placeholder="예: 9/8(화)~9/11(금)">
+            <input type="text" id="taskPeriod" class="input-field" required placeholder="예: 9/10(목)~9/13(일)">
           </div>
 
           <!-- Schedule breakdown -->
@@ -282,14 +282,6 @@
             <label class="form-label">날짜별 상세 작업 내용</label>
             <span class="form-help">각 날짜별 상세 내용을 적어주세요. 빈칸은 일정이 없는 것으로 처리됩니다.</span>
             <div class="schedule-subform">
-              <div class="schedule-day-row">
-                <span class="schedule-day-label">9/7(월)</span>
-                <input type="text" id="day_9_7" class="input-field" placeholder="일정 입력...">
-              </div>
-              <div class="schedule-day-row">
-                <span class="schedule-day-label">9/8(화)</span>
-                <input type="text" id="day_9_8" class="input-field" placeholder="일정 입력...">
-              </div>
               <div class="schedule-day-row">
                 <span class="schedule-day-label">9/9(수)</span>
                 <input type="text" id="day_9_9" class="input-field" placeholder="일정 입력...">
@@ -310,6 +302,14 @@
                 <span class="schedule-day-label">9/13(일)</span>
                 <input type="text" id="day_9_13" class="input-field" placeholder="일정 입력...">
               </div>
+              <div class="schedule-day-row">
+                <span class="schedule-day-label">9/14(월)</span>
+                <input type="text" id="day_9_14" class="input-field" placeholder="일정 입력...">
+              </div>
+              <div class="schedule-day-row">
+                <span class="schedule-day-label">9/15(화)</span>
+                <input type="text" id="day_9_15" class="input-field" placeholder="일정 입력...">
+              </div>
             </div>
           </div>
         </div>
@@ -328,7 +328,7 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <!-- Scripts -->
-  <script src="data.js?v=5"></script>
-  <script src="app.js?v=5"></script>
+  <script src="data.js?v=6"></script>
+  <script src="app.js?v=6"></script>
 </body>
 </html>

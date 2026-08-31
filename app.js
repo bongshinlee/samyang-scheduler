@@ -2,12 +2,22 @@
 
 document.addEventListener('DOMContentLoaded', () => {
   // Constants & State
-  const DATE_KEYS = ['9/7', '9/8', '9/9', '9/10', '9/11', '9/12', '9/13'];
+  const DATE_KEYS = ['9/9', '9/10', '9/11', '9/12', '9/13', '9/14', '9/15'];
 
-  // Previous outage period. Anything saved before the 9/7 change is keyed by
-  // these, so it gets remapped position-for-position on load. The weekdays
-  // line up exactly (both run 월~일), so day labels stay correct.
-  const LEGACY_DATE_KEYS = ['8/10', '8/11', '8/12', '8/13', '8/14', '8/15', '8/16'];
+  // Day-of-week labels for the current board, used when rewriting 공사기간 text.
+  const DAY_LABELS = {
+    '9/9': '수', '9/10': '목', '9/11': '금', '9/12': '토',
+    '9/13': '일', '9/14': '월', '9/15': '화',
+  };
+
+  // Earlier board layouts, mapped column-for-column onto DATE_KEYS.
+  // 8/10~8/16 is the original August outage; 9/7~9/13 is the September plan
+  // from before the work slipped two days. Entries stay in the same column,
+  // so a schedule just picks up the new date above it.
+  const LEGACY_LAYOUTS = [
+    ['8/10', '8/11', '8/12', '8/13', '8/14', '8/15', '8/16'],
+    ['9/7', '9/8', '9/9', '9/10', '9/11', '9/12', '9/13'],
+  ];
 
   let tasks = [];
 
@@ -77,28 +87,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
     taskList.forEach(task => {
       if (!task || !task.schedules) return;
-      if (!LEGACY_DATE_KEYS.some(key => key in task.schedules)) return;
+      // Already on the current dates.
+      if (DATE_KEYS.every(key => key in task.schedules)) return;
+
+      const layout = LEGACY_LAYOUTS.find(keys => keys.some(key => key in task.schedules));
+      if (!layout) return;
 
       const remapped = {};
       DATE_KEYS.forEach((key, i) => {
-        remapped[key] = task.schedules[LEGACY_DATE_KEYS[i]]
-          || task.schedules[key]
-          || { text: '', completed: false };
+        remapped[key] = task.schedules[layout[i]] || { text: '', completed: false };
       });
       task.schedules = remapped;
 
-      // 공사기간 is display text like "8/11(화)~8/14(금)"; shift the dates and
-      // leave the weekday labels alone, since the weekdays match up.
       if (typeof task.period === 'string') {
-        LEGACY_DATE_KEYS.forEach((oldKey, i) => {
-          task.period = task.period.split(oldKey).join(DATE_KEYS[i]);
-        });
+        task.period = shiftPeriodText(task.period, layout);
       }
 
       changed = true;
     });
 
     return changed;
+  }
+
+  // Rewrites dates inside 공사기간 text such as "9/7(월)~9/11(금)" onto the
+  // current board dates. The weekday label is recomputed, since shifting the
+  // work by two days also moves it two weekdays along.
+  function shiftPeriodText(text, layout) {
+    const map = {};
+    layout.forEach((oldKey, i) => { map[oldKey] = DATE_KEYS[i]; });
+
+    return text.replace(/(\d{1,2}\/\d{1,2})(\([월화수목금토일]\))?/g, (match, date, weekday) => {
+      const target = map[date];
+      if (!target) return match;
+      return weekday ? `${target}(${DAY_LABELS[target]})` : target;
+    });
   }
 
   function loadData() {
