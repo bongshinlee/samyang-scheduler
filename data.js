@@ -38,7 +38,8 @@ const INITIAL_DATA = [
         "completed": false
       }
     },
-    "completed": false
+    "completed": false,
+    "highlight": false
   },
   {
     "id": 2,
@@ -78,7 +79,8 @@ const INITIAL_DATA = [
         "completed": false
       }
     },
-    "completed": false
+    "completed": false,
+    "highlight": false
   },
   {
     "id": 3,
@@ -118,7 +120,8 @@ const INITIAL_DATA = [
         "completed": false
       }
     },
-    "completed": false
+    "completed": false,
+    "highlight": false
   },
   {
     "id": 4,
@@ -158,7 +161,8 @@ const INITIAL_DATA = [
         "completed": false
       }
     },
-    "completed": false
+    "completed": false,
+    "highlight": false
   },
   {
     "id": 5,
@@ -198,7 +202,8 @@ const INITIAL_DATA = [
         "completed": false
       }
     },
-    "completed": false
+    "completed": false,
+    "highlight": false
   },
   {
     "id": 6,
@@ -402,7 +407,8 @@ const INITIAL_DATA = [
         "completed": false
       }
     },
-    "completed": false
+    "completed": false,
+    "highlight": false
   },
   {
     "id": 11,
@@ -483,7 +489,8 @@ const INITIAL_DATA = [
         "completed": false
       }
     },
-    "completed": false
+    "completed": false,
+    "highlight": false
   },
   {
     "id": 13,
@@ -523,7 +530,8 @@ const INITIAL_DATA = [
         "completed": false
       }
     },
-    "completed": false
+    "completed": false,
+    "highlight": false
   },
   {
     "id": 14,
@@ -563,7 +571,8 @@ const INITIAL_DATA = [
         "completed": false
       }
     },
-    "completed": false
+    "completed": false,
+    "highlight": false
   },
   {
     "id": 15,
@@ -603,7 +612,8 @@ const INITIAL_DATA = [
         "completed": false
       }
     },
-    "completed": false
+    "completed": false,
+    "highlight": false
   },
   {
     "id": 16,
@@ -645,6 +655,88 @@ const INITIAL_DATA = [
     },
     "completed": false,
     "highlight": false
+  },
+  {
+    "id": 17,
+    "part": "보전",
+    "category": "기계",
+    "taskName": "T-250 두께측정",
+    "manager": "양우빈",
+    "contractor": "푸른환경기술",
+    "period": "9/9(수)",
+    "schedules": {
+      "9/7": {
+        "text": "",
+        "completed": false
+      },
+      "9/8": {
+        "text": "",
+        "completed": false
+      },
+      "9/9": {
+        "text": "",
+        "completed": false
+      },
+      "9/10": {
+        "text": "",
+        "completed": false
+      },
+      "9/11": {
+        "text": "",
+        "completed": false
+      },
+      "9/12": {
+        "text": "",
+        "completed": false
+      },
+      "9/13": {
+        "text": "",
+        "completed": false
+      }
+    },
+    "completed": false,
+    "highlight": false
+  },
+  {
+    "id": 18,
+    "part": "보전",
+    "category": "기계",
+    "taskName": "2E-522-2 Leak부 보수작업",
+    "manager": "박병옥",
+    "contractor": "동문ENG",
+    "period": "9/12(토)~9/13(일)",
+    "schedules": {
+      "9/7": {
+        "text": "",
+        "completed": false
+      },
+      "9/8": {
+        "text": "",
+        "completed": false
+      },
+      "9/9": {
+        "text": "",
+        "completed": false
+      },
+      "9/10": {
+        "text": "",
+        "completed": false
+      },
+      "9/11": {
+        "text": "",
+        "completed": false
+      },
+      "9/12": {
+        "text": "",
+        "completed": false
+      },
+      "9/13": {
+        "text": "",
+        "completed": false
+      }
+    },
+    "completed": false,
+    "highlight": true
   }
 ];
 
