@@ -2,18 +2,23 @@
 
 document.addEventListener('DOMContentLoaded', () => {
   // Constants & State
-  const DATE_KEYS = ['9/9', '9/10', '9/11', '9/12', '9/13', '9/14', '9/15'];
+  const DATE_KEYS = ['9/8', '9/9', '9/10', '9/11', '9/12', '9/13', '9/14', '9/15'];
 
   // Day-of-week labels for the current board, used when rewriting 공사기간 text.
   const DAY_LABELS = {
-    '9/9': '수', '9/10': '목', '9/11': '금', '9/12': '토',
+    '9/8': '화', '9/9': '수', '9/10': '목', '9/11': '금', '9/12': '토',
     '9/13': '일', '9/14': '월', '9/15': '화',
   };
 
-  // Earlier board layouts, mapped column-for-column onto DATE_KEYS.
-  // 8/10~8/16 is the original August outage; 9/7~9/13 is the September plan
-  // from before the work slipped two days. Entries stay in the same column,
-  // so a schedule just picks up the new date above it.
+  // The board's previous 7-column layout (9/9~9/15), before 9/8 was added as
+  // a new leading column. A task already in this format just gets an empty
+  // 9/8 inserted — its other columns are untouched, nothing shifts.
+  const PREVIOUS_DATE_KEYS = DATE_KEYS.slice(1);
+
+  // Older layouts, mapped column-for-column onto PREVIOUS_DATE_KEYS (the same
+  // target they always mapped onto, before 9/8 existed as a column). 8/10~8/16
+  // is the original August outage; 9/7~9/13 is the September plan from before
+  // the work slipped two days.
   const LEGACY_LAYOUTS = [
     ['8/10', '8/11', '8/12', '8/13', '8/14', '8/15', '8/16'],
     ['9/7', '9/8', '9/9', '9/10', '9/11', '9/12', '9/13'],
@@ -84,23 +89,33 @@ document.addEventListener('DOMContentLoaded', () => {
   function migrateDateKeys(taskList) {
     if (!Array.isArray(taskList)) return false;
     let changed = false;
+    const newLeadingKey = DATE_KEYS[0]; // '9/8'
 
     taskList.forEach(task => {
       if (!task || !task.schedules) return;
       // Already on the current dates.
       if (DATE_KEYS.every(key => key in task.schedules)) return;
 
+      // Previous layout (9/9~9/15): just insert the new day, nothing shifts.
+      if (PREVIOUS_DATE_KEYS.every(key => key in task.schedules)) {
+        task.schedules = { [newLeadingKey]: { text: '', completed: false }, ...task.schedules };
+        changed = true;
+        return;
+      }
+
+      // Older layout: remap onto the 9/9~9/15 columns as before, then add
+      // the new 9/8 column empty — nobody had data for a day that didn't exist yet.
       const layout = LEGACY_LAYOUTS.find(keys => keys.some(key => key in task.schedules));
       if (!layout) return;
 
-      const remapped = {};
-      DATE_KEYS.forEach((key, i) => {
+      const remapped = { [newLeadingKey]: { text: '', completed: false } };
+      PREVIOUS_DATE_KEYS.forEach((key, i) => {
         remapped[key] = task.schedules[layout[i]] || { text: '', completed: false };
       });
       task.schedules = remapped;
 
       if (typeof task.period === 'string') {
-        task.period = shiftPeriodText(task.period, layout);
+        task.period = shiftPeriodText(task.period, layout, PREVIOUS_DATE_KEYS);
       }
 
       changed = true;
@@ -109,12 +124,12 @@ document.addEventListener('DOMContentLoaded', () => {
     return changed;
   }
 
-  // Rewrites dates inside 공사기간 text such as "9/7(월)~9/11(금)" onto the
-  // current board dates. The weekday label is recomputed, since shifting the
-  // work by two days also moves it two weekdays along.
-  function shiftPeriodText(text, layout) {
+  // Rewrites dates inside 공사기간 text such as "9/7(월)~9/11(금)" onto
+  // targetKeys, position-for-position with layout. The weekday label is
+  // recomputed, since shifting the work also moves it along the calendar.
+  function shiftPeriodText(text, layout, targetKeys) {
     const map = {};
-    layout.forEach((oldKey, i) => { map[oldKey] = DATE_KEYS[i]; });
+    layout.forEach((oldKey, i) => { map[oldKey] = targetKeys[i]; });
 
     return text.replace(/(\d{1,2}\/\d{1,2})(\([월화수목금토일]\))?/g, (match, date, weekday) => {
       const target = map[date];

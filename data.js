@@ -9,6 +9,10 @@ const INITIAL_DATA = [
     "contractor": "동문ENG",
     "period": "9/12(토)",
     "schedules": {
+      "9/8": {
+        "text": "",
+        "completed": false
+      },
       "9/9": {
         "text": "",
         "completed": false
@@ -50,6 +54,10 @@ const INITIAL_DATA = [
     "contractor": "11",
     "period": "9/10(목)~9/14(월)",
     "schedules": {
+      "9/8": {
+        "text": "",
+        "completed": false
+      },
       "9/9": {
         "text": "",
         "completed": false
@@ -91,6 +99,10 @@ const INITIAL_DATA = [
     "contractor": "11",
     "period": "9/12(토)",
     "schedules": {
+      "9/8": {
+        "text": "",
+        "completed": false
+      },
       "9/9": {
         "text": "",
         "completed": false
@@ -132,6 +144,10 @@ const INITIAL_DATA = [
     "contractor": "22",
     "period": "9/9(수)",
     "schedules": {
+      "9/8": {
+        "text": "",
+        "completed": false
+      },
       "9/9": {
         "text": "",
         "completed": false
@@ -173,6 +189,10 @@ const INITIAL_DATA = [
     "contractor": "22",
     "period": "9/11(금)~9/15(화)",
     "schedules": {
+      "9/8": {
+        "text": "",
+        "completed": false
+      },
       "9/9": {
         "text": "",
         "completed": false
@@ -214,6 +234,10 @@ const INITIAL_DATA = [
     "contractor": "22",
     "period": "9/12(토)~9/13(일)",
     "schedules": {
+      "9/8": {
+        "text": "",
+        "completed": false
+      },
       "9/9": {
         "text": "",
         "completed": false
@@ -255,6 +279,10 @@ const INITIAL_DATA = [
     "contractor": "22",
     "period": "9/9(수)~9/11(금)",
     "schedules": {
+      "9/8": {
+        "text": "",
+        "completed": false
+      },
       "9/9": {
         "text": "",
         "completed": false
@@ -296,6 +324,10 @@ const INITIAL_DATA = [
     "contractor": "22",
     "period": "9/10(목)~9/13(일)",
     "schedules": {
+      "9/8": {
+        "text": "",
+        "completed": false
+      },
       "9/9": {
         "text": "",
         "completed": false
@@ -337,6 +369,10 @@ const INITIAL_DATA = [
     "contractor": "22",
     "period": "9/11(금)~9/13(일)",
     "schedules": {
+      "9/8": {
+        "text": "",
+        "completed": false
+      },
       "9/9": {
         "text": "",
         "completed": false
@@ -378,6 +414,10 @@ const INITIAL_DATA = [
     "contractor": "강우기업(상주 도급업체)",
     "period": "9/12(토)~9/13(일)",
     "schedules": {
+      "9/8": {
+        "text": "",
+        "completed": false
+      },
       "9/9": {
         "text": "",
         "completed": false
@@ -419,6 +459,10 @@ const INITIAL_DATA = [
     "contractor": "강우기업(상주 도급업체)",
     "period": "9/13(일)",
     "schedules": {
+      "9/8": {
+        "text": "",
+        "completed": false
+      },
       "9/9": {
         "text": "",
         "completed": false
@@ -460,6 +504,10 @@ const INITIAL_DATA = [
     "contractor": "강우기업(상주 도급업체)",
     "period": "9/10(목)",
     "schedules": {
+      "9/8": {
+        "text": "",
+        "completed": false
+      },
       "9/9": {
         "text": "",
         "completed": false
