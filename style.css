@@ -775,6 +775,8 @@ footer {
   display: flex;
   flex-direction: column;
   max-height: 90vh;
+  overflow: hidden; /* forces .modal-body to actually shrink to the remaining
+                        space instead of pushing the footer past max-height */
 }
 
 [data-theme="light"] .modal-window {
@@ -798,9 +800,23 @@ footer {
   font-weight: 700;
 }
 
+/* The <form> sits between .modal-window and .modal-body/.modal-footer, so it
+   also needs to be a shrinkable flex column — otherwise it's the form (an
+   unstyled block by default) that refuses to shrink below its content size,
+   and .modal-body's own overflow-y:auto never gets a constrained height to
+   scroll within, pushing the footer buttons off-screen. */
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
 .modal-body {
   padding: 24px;
   overflow-y: auto;
+  min-height: 0;
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 16px;
