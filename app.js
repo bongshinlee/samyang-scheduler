@@ -61,6 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const taskPart = document.getElementById('taskPart');
   const taskCategory = document.getElementById('taskCategory');
   const taskName = document.getElementById('taskName');
+  const taskHighlight = document.getElementById('taskHighlight');
   const taskManager = document.getElementById('taskManager');
   const taskContractor = document.getElementById('taskContractor');
   const taskPeriod = document.getElementById('taskPeriod');
@@ -1132,6 +1133,7 @@ if (typeof window !== 'undefined') {
     taskManager.value = task.manager;
     taskContractor.value = task.contractor;
     taskPeriod.value = task.period;
+    taskHighlight.checked = !!task.highlight;
 
     // Fill daily schedules
     DATE_KEYS.forEach(date => {
@@ -1198,9 +1200,7 @@ if (typeof window !== 'undefined') {
         existingTask.contractor = contractorVal;
         existingTask.period = periodVal;
         existingTask.schedules = schedulesVal;
-
-        // If the task name matches highlight keywords, flag it
-        existingTask.highlight = nameVal.includes('Leak') || nameVal.includes('PCM') || nameVal.includes('Glass Lined') || nameVal.includes('펌프');
+        existingTask.highlight = taskHighlight.checked;
 
         // Check overall completion state
         const scheduleList = Object.values(existingTask.schedules).filter(s => s.text && s.text.trim());
@@ -1213,8 +1213,7 @@ if (typeof window !== 'undefined') {
     } else {
       // Add mode
       const newId = tasks.length > 0 ? Math.max(...tasks.map(t => t.id)) + 1 : 1;
-      const isHighlighted = nameVal.includes('Leak') || nameVal.includes('PCM') || nameVal.includes('Glass Lined') || nameVal.includes('펌프');
-      
+
       const newTask = {
         id: newId,
         part: partVal,
@@ -1225,7 +1224,7 @@ if (typeof window !== 'undefined') {
         period: periodVal,
         schedules: schedulesVal,
         completed: false,
-        highlight: isHighlighted
+        highlight: taskHighlight.checked
       };
 
       tasks.push(newTask);
